@@ -98,7 +98,7 @@ const fetchImages = async (query) => {
        
                 list.append(imageElement);
                 const index = (idx + 1) + (currentPage - 1) * PER_PAGE;
-                const link = document.querySelector(`#gallery > ul > li:nth-child(${index}) > a`);
+                const link = document.querySelector(`#gallery > ul > li:nth-child(${index}) a`);
 
                 // Create a lightbox
 
