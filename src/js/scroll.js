@@ -1,14 +1,15 @@
 // Scroll
-let scrollHeight = 0;
 
-function scrollDown() {
+function scrollDown () {
+    const { height: cardHeight } = document
+        .querySelector('.gallery')
+        .firstElementChild.getBoundingClientRect();
 
-    const { height: cardHeight } = document.querySelector('.gallery').firstElementChild.getBoundingClientRect();
-    scrollHeight = scrollHeight + cardHeight * 40
+    console.log('function executed')
+
     window.scrollBy({
-        top: scrollHeight,
-        behavior: "smooth",
+        top: cardHeight * 2,
+        behavior: 'smooth',
     })
 }
-
-export { scrollDown }
+// export { scrollDown }

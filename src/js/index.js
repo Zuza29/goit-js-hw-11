@@ -1,22 +1,20 @@
+// Imports
+
 import axios from 'axios';
-import Notiflix from 'notiflix';
-import SimpleLightbox from "simplelightbox/dist/simple-lightbox.esm";
-import "simplelightbox/dist/simple-lightbox.min.css";
-import { scrollDown } from './scroll';
+import Notiflix, { Notify } from 'notiflix';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
 import { snowflakesToggle } from './snowflakes';
 
 // Global variables
 
 const form = document.getElementById('search-form');
 const gallery = document.getElementById('gallery');
-const list = document.createElement('ul');
+
 const loadMoreBtn = document.querySelector('.load-more');
 const toTopBtn = document.getElementById('to-top')
 const snowflakesBtn = document.getElementById('snowflakes-btn');
-const lightbox = new SimpleLightbox(".gallery a", { CaptionDelay: 250, captions: true, captionData: "alt" });
 
-
-gallery.append(list);
 loadMoreBtn.style.display = 'none';
 toTopBtn.style.display = 'none';
 
@@ -28,104 +26,114 @@ const parameters = {
     ORIENTATION: 'horizontal',
     SAFE_SEARCH: 'true',
     PER_PAGE: 40,
-}
+};
 
 const { KEY, IMG_TYPE, ORIENTATION, SAFE_SEARCH, PER_PAGE } = parameters;
 
 let currentPage = 1;
+let value = '';
+let totalPages;
 
 // Submit handler
 
-let value = '';
-
 const submitHandler = async (event) => {
     event.preventDefault();
-    list.innerHTML = '';
+    gallery.innerHTML = '';
     value = form.input.value;
+
     if (value.trim() === '') {
-        Notiflix.Notify.info('Please do not leave the field empty.');
-    } else {
-        await fetchImages(form.input.value);
+        loadMoreBtn.style.display = 'none';
+        Notiflix.Notify.info('Please do not leave the search field empty')
+        return;
     }
+    
+    fetchImages().then(function (response) {
+        totalPages = response.data.totalHits / PER_PAGE;
+        if (currentPage === totalPages) {
+            loadMoreBtn.style.display = 'none';
+            Notiflix.Notify.info('You have reached the end of results.');
+            return;
+        }
+
+        if (response.data.totalHits > 0) {
+            renderImages(response);
+            return Notify.success(`Hooray! We found ${response.data.totalHits} images matching your search.`);
+        }
+      
+            Notify.info('Sorry, there are no images matching your search.');
+      
+
+    });
 }
 
-const loadMore = async (event) => {
-    event.preventDefault();
-    await fetchImages(value);
-    scrollDown()
-};
+// Render images function
+
+function renderImages(resp) {
+    let markup = '';
+    resp.data.hits.forEach(img => {
+        markup += `<div class="img-container"><a href="${img.largeImageURL}">
+       <img src="${img.webformatURL}" alt="${img.tags}" loading="lazy" /></a>
+       <p>${img.likes} <strong>likes</strong> | ${img.views} <strong>views</strong> </br> ${img.comments} <strong>comments</strong> | ${img.downloads} <strong>downloads</strong></p>
+       </div>`
+    });
+    gallery.insertAdjacentHTML('beforeend', markup);
+
+    // Lightbox setup
+
+       let lb = new SimpleLightbox('.gallery a', {
+        captionsData: 'alt',
+        captionDelay: 250,
+    });
+    lb.refresh();
+}
 
 // Fetch images function
 
-const fetchImages = async (query) => {
-    const response = await axios.get(
-        `https://pixabay.com/api/?key=${KEY}&q=${query}&image_type=${IMG_TYPE}&orientation=${ORIENTATION}&safe_search=${SAFE_SEARCH}&per_page=${PER_PAGE}&page=${currentPage}`)
-        .then(function (response) {
-
-            // Handle successful fetch - notifications
-
-            const totalPages = Math.ceil(response.data.totalHits / PER_PAGE);
-            if (response.data.hits.length === 0) {
-                Notiflix.Notify.info('Sorry, there are no pictures matching your search');
-                return;
-            }
-            if (response.data.totalHits > 0 && currentPage !== totalPages && currentPage === 1) {
-                Notiflix.Notify.success(`Hooray! We found ${response.data.totalHits} images.`)
-            }
-
-            if (currentPage === totalPages) {
-                Notiflix.Notify.info('You have reached the end of the results.');
-                loadMoreBtn.style.display = 'none';
-                return;
-            }
-
-
-            // Handle successful fetch - render images
-
-            response.data.hits.forEach((img, idx) => {
-                let imageElement = document.createElement('li');
-                imageElement.innerHTML = `
-                <div class="img-container"><a href="${img.largeImageURL}">
-       <img src="${img.webformatURL}" alt="${img.tags}" loading="lazy" /></a>
-       <p>${img.likes} <strong>likes</strong> | ${img.views} <strong>views</strong> </br> ${img.comments} <strong>comments</strong> | ${img.downloads} <strong>downloads</strong></p>
-       </div>`;
-       
-                list.append(imageElement);
-            })
-            lightbox.refresh();
-            loadMoreBtn.style.display = 'block';
-            return response;
-        })
-
-        // Handle failure
-
-        .catch(function (error) {
-            console.log(error);
-            Notiflix.Notify.failure('Sorry, something went wrong...')
-        })
-
-    currentPage++;
+async function fetchImages() {
+    const URL = `https://pixabay.com/api/?key=${KEY}&q=${value}&image_type=${IMG_TYPE}&orientation=${ORIENTATION}&safe_search=${SAFE_SEARCH}&per_page=${PER_PAGE}&page=${currentPage}`;
+    try {
+        const response = await axios.get(URL);
+        return response;
+    } catch (error) {
+        console.error(error);
+        Notiflix.Notify.failure('Sorry, something went wrong...');
+    }
 };
 
-// Additional functionality - falling snowflakes effect
+// Load-more button handler
 
+const loadMoreHandler = () => {
+    currentPage++;
+    fetchImages()
+        .then(function (response) {
+            renderImages(response);
+            const { height: cardHeight } = document
+                .querySelector('.gallery')
+                .firstElementChild.getBoundingClientRect();
+            window.scrollBy({
+                top: cardHeight * 2,
+                behavior: 'smooth',
+            })
+        })
+        .catch(error => console.log(error));
+};
 
 // Event listeners on the elements
 
 form.addEventListener('submit', submitHandler);
-loadMoreBtn.addEventListener('click', loadMore);
-snowflakesBtn.addEventListener('click', snowflakesToggle)
+snowflakesBtn.addEventListener('click', snowflakesToggle);
+loadMoreBtn.addEventListener('click', loadMoreHandler);
 
 // Scroll
 
-document.addEventListener('scroll', () => {
-    if (window.pageYOffset === 0) {
-        toTopBtn.style.display = 'none'
-    } else {
-        toTopBtn.style.display = 'block'
-    }
-});
+ document.addEventListener('scroll', () => {
+     if (window.pageYOffset === 0) {
+         toTopBtn.style.display = 'none'
+     } else {
+         toTopBtn.style.display = 'block'
+     }
+ });
 
-toTopBtn.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-})
+ toTopBtn.addEventListener('click', () => {
+     window.scrollTo({ top: 0, behavior: 'smooth' });
+ })
