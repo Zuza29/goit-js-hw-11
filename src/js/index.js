@@ -46,29 +46,23 @@ const submitHandler = async (event) => {
         Notiflix.Notify.info('Please do not leave the search field empty')
         return;
     }
-    
-    fetchImages().then(function (response) {
-        totalPages = response.data.totalHits / PER_PAGE;
-        if (currentPage === totalPages) {
-            loadMoreBtn.style.display = 'none';
-            Notiflix.Notify.info('You have reached the end of results.');
-            return;
-        }
 
+    fetchImages().then(function (response) {
+        totalPages = Math.ceil(response.data.totalHits / PER_PAGE);
         if (response.data.totalHits > 0) {
             renderImages(response);
-            return Notify.success(`Hooray! We found ${response.data.totalHits} images matching your search.`);
-        }
-      
-            Notify.info('Sorry, there are no images matching your search.');
-      
+            loadMoreBtn.style.display = 'block';
 
+            return Notiflix.Notify.success(`Hooray! We found ${response.data.totalHits} images matching your search.`);
+        }
+        Notiflix.Notify.info('Sorry, there are no images matching your search.');
     });
 }
 
 // Render images function
 
 function renderImages(resp) {
+
     let markup = '';
     resp.data.hits.forEach(img => {
         markup += `<div class="img-container"><a href="${img.largeImageURL}">
@@ -80,7 +74,7 @@ function renderImages(resp) {
 
     // Lightbox setup
 
-       let lb = new SimpleLightbox('.gallery a', {
+    let lb = new SimpleLightbox('.gallery a', {
         captionsData: 'alt',
         captionDelay: 250,
     });
@@ -98,12 +92,12 @@ async function fetchImages() {
         console.error(error);
         Notiflix.Notify.failure('Sorry, something went wrong...');
     }
+
 };
 
 // Load-more button handler
 
 const loadMoreHandler = () => {
-    currentPage++;
     fetchImages()
         .then(function (response) {
             renderImages(response);
@@ -116,6 +110,14 @@ const loadMoreHandler = () => {
             })
         })
         .catch(error => console.log(error));
+    currentPage++;
+    if (currentPage > totalPages) {
+        loadMoreBtn.style.display = 'none';
+        return Notify.info(
+            "We're sorry, but you've reached the end of search results."
+        )
+    };
+    console.log('curr', currentPage, 'total', totalPages)
 };
 
 // Event listeners on the elements
@@ -126,14 +128,14 @@ loadMoreBtn.addEventListener('click', loadMoreHandler);
 
 // Scroll
 
- document.addEventListener('scroll', () => {
-     if (window.pageYOffset === 0) {
-         toTopBtn.style.display = 'none'
-     } else {
-         toTopBtn.style.display = 'block'
-     }
- });
+document.addEventListener('scroll', () => {
+    if (window.pageYOffset === 0) {
+        toTopBtn.style.display = 'none'
+    } else {
+        toTopBtn.style.display = 'block'
+    }
+});
 
- toTopBtn.addEventListener('click', () => {
-     window.scrollTo({ top: 0, behavior: 'smooth' });
- })
+toTopBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+})
