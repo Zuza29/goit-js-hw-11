@@ -13,6 +13,7 @@ const list = document.createElement('ul');
 const loadMoreBtn = document.querySelector('.load-more');
 const toTopBtn = document.getElementById('to-top')
 const snowflakesBtn = document.getElementById('snowflakes-btn');
+const lightbox = new SimpleLightbox(".gallery a", { CaptionDelay: 250, captions: true, captionData: "alt" });
 
 
 gallery.append(list);
@@ -39,20 +40,13 @@ let value = '';
 
 const submitHandler = async (event) => {
     event.preventDefault();
-
-    if (!!value && value !== form.input.value) {
-        list.innerHTML = '';
-        currentPage = 1;
-        loadMoreBtn.style.display = 'none';
-    } else {
-        value = form.input.value;
-    }
-
+    list.innerHTML = '';
+    value = form.input.value;
     if (value.trim() === '') {
         Notiflix.Notify.info('Please do not leave the field empty.');
-        return;
-    };
-    await fetchImages(form.input.value);
+    } else {
+        await fetchImages(form.input.value);
+    }
 }
 
 const loadMore = async (event) => {
@@ -97,26 +91,9 @@ const fetchImages = async (query) => {
        </div>`;
        
                 list.append(imageElement);
-                const index = (idx + 1) + (currentPage - 1) * PER_PAGE;
-                const link = document.querySelector(`#gallery > ul > li:nth-child(${index}) a`);
-
-                // Create a lightbox
-
-                link && link.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    const lightbox = new SimpleLightbox('.gallery a', {
-                        captions: true,
-                        captionsData: "alt",
-                        captionDelay: 250,
-                        captionPosition: "bottom",
-                        animationSlide: true,
-                    });
-
-                })
             })
+            lightbox.refresh();
             loadMoreBtn.style.display = 'block';
-
-
             return response;
         })
 

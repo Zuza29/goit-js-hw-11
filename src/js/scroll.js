@@ -1,14 +1,14 @@
 // Scroll
+let scrollHeight = 0;
 
-const submitHandler = async (event) => {
-    event.preventDefault();
-    if (!!value && value !== form.input.value) {
-        list.innerHTML = '';
-        currentPage = 1;
-        loadMoreBtn.style.display = 'none';
-    } else {
-        value = form.input.value;
-    }
+function scrollDown() {
+
+    const { height: cardHeight } = document.querySelector('.gallery').firstElementChild.getBoundingClientRect();
+    scrollHeight = scrollHeight + cardHeight * 40
+    window.scrollBy({
+        top: scrollHeight,
+        behavior: "smooth",
+    })
 }
 
 export { scrollDown }
